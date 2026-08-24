@@ -25,3 +25,8 @@ def create_user(user:User):
 @app.get("/users")
 def get_users():
     return users
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
