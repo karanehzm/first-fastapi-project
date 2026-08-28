@@ -17,7 +17,8 @@ class User(BaseModel):
 users = []
 
 
-@app.post("/users")
+@app.post("/users")         #because the user: is a pydantic model.
+                            # FastAPI understands that the data should come from the request body.
 def create_user(user:User):
     users.append(user)
     return user
@@ -31,9 +32,11 @@ def get_users():
 def health():
     return {"status": "healthy"}
 
+
 @app.get("/")
 def home():
     return {"Message: API is running"}
+
 
 @app.get("/users/{user_id}")
 def get_users_id(user_id: int):
