@@ -56,3 +56,15 @@ def delete_user(user_id: int):
             return {"message": "user deleted"}
         
     raise HTTPException(status_code=404, detail= "no user found")
+
+
+@app.put("/users/{user_id}")        #updates 
+def update_user(user_id: int, updated_user: User):
+    for user in users:
+        if user.id == user_id:
+            user.id = updated_user.id
+            user.name = updated_user.name
+            user.age = updated_user.age
+
+            return user
+    raise HTTPException(status_code = 404, details = "user not found")
