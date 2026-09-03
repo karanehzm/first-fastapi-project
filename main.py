@@ -9,6 +9,10 @@ class User(BaseModel):
     name : str
     age : int
 
+class UserUpdate(BaseModel):
+    
+    name : str | None = None
+    age : int | None = None
 
 # @app.get("/products")                   #If someone asked for "/", call the function home().
 # def get_products(category = None):
@@ -67,4 +71,18 @@ def update_user(user_id: int, updated_user: User):
 
             return user
         
+    raise HTTPException(status_code = 404, detail = "user not found")
+
+
+@app.patch("/users/{user_id}")
+def partially_update_user(user_id: int, updated_user: UserUpdate ):
+    for user in users:
+        if user.id == user_id:
+            if updated_user.name is not None:
+                user.name = updated_user.name
+                
+            if updated_user.age is not None:
+                user.age = updated_user.age
+    
+            return user
     raise HTTPException(status_code = 404, detail = "user not found")
