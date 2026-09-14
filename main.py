@@ -2,7 +2,13 @@
 from fastapi import FastAPI, HTTPException    #python imports FastAPI class
 from pydantic import BaseModel
 
-app = FastAPI()                 #python creates the application    
+from database import engine, SessionLocal
+import models
+models.Base.metadata.create_all(bind= engine)
+db = SessionLocal()             # is an actual session 
+
+
+app = FastAPI()                 # python creates the application    
 
 class User(BaseModel):
     id : int
@@ -18,18 +24,25 @@ class UserUpdate(BaseModel):
 # def get_products(category = None):
 #     return {"category": category}
 
-users = []
+users = []                  #the users are in memory. if the server resetarts the users disappear.
 
 
 @app.post("/users")         #because the user: is a pydantic model.
                             # FastAPI understands that the data should come from the request body.
 def create_user(user:User):
-    users.append(user)
-    return user
+    new_user = models.User(
+        id = user.id,
+        name = user.name,
+        age = user.age
+    )
+    db.add(new_user)
+    db.commit()
+
+    return new_user
 
 @app.get("/users")
 def get_users():
-    return users
+    return db.query(models.User).all()
 
 
 @app.get("/health")
@@ -44,45 +57,79 @@ def home():
 
 @app.get("/users/{user_id}")
 def get_users_id(user_id: int):
-    for user in users:
-        if user.id == user_id:
-            return user
-        
-    raise HTTPException(status_code = 404, detail="user not found")
+
+    # for user in db.query(models.User).all():
+    #     if user.id == user_id:
+    #         return user
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code = 404, detail="user not found")
+    
+    return user
 
 
 
 @app.delete("/users/{user_id}")
 def delete_user(user_id: int):
-    for user in users:
-        if user.id == user_id:
-            users.remove(user)
-            return {"message": "user deleted"}
+
+    # for user in users:
+    #     if user.id == user_id:
+    #         users.remove(user)
+    #         return {"message": "user deleted"}
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        db.delete(user)
+        db.commit()
+        return {"message": "user deleted"}
+    
+
         
     raise HTTPException(status_code=404, detail= "no user found")
 
 
-@app.put("/users/{user_id}")        #updates 
+@app.put("/users/{user_id}")        # updates the user 
 def update_user(user_id: int, updated_user: User):
-    for user in users:
-        if user.id == user_id:
-            user.name = updated_user.name
-            user.age = updated_user.age
+    # for user in users:
+    #     if user.id == user_id:
+    #         user.name = updated_user.name
+    #         user.age = updated_user.age
 
-            return user
+    #         return user
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        user.name = updated_user.name
+        user.age = updated_user.age
+        db.commit()
+
+        return {"message": "User is updated"}
+
         
     raise HTTPException(status_code = 404, detail = "user not found")
 
 
 @app.patch("/users/{user_id}")
 def partially_update_user(user_id: int, updated_user: UserUpdate ):
-    for user in users:
-        if user.id == user_id:
-            if updated_user.name is not None:
-                user.name = updated_user.name
+    # for user in users:
+    #     if user.id == user_id:
+    #         if updated_user.name is not None:
+    #             user.name = updated_user.name
                 
-            if updated_user.age is not None:
-                user.age = updated_user.age
+    #         if updated_user.age is not None:
+    #             user.age = updated_user.age
     
-            return user
+    #         return user
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        if updated_user.name is not None:
+            user.name = updated_user.name
+
+        if updated_user.age is not None:
+            user.age = updated_user.age
+
+        db.commit()
+        return {"message": "User partially updated"}
+    
     raise HTTPException(status_code = 404, detail = "user not found")

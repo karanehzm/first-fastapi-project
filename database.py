@@ -1,26 +1,10 @@
-import sqlite3
-
-connection = sqlite3.connect("app.db")
-cursor = connection.cursor()
+# connection to the database
 
 
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-               id INTEGER PRIMARY KEY,
-               name TEXT NOT NULL,
-               age INTEGER
-               )
-               """)
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-def add_user():
-    cursor.execute("""
-        INSERT INTO users (name, age)
-        VALUES ('Alice', 23)
-               """)
-    connection.commit()
-    
+DATABASE_URL = "sqlite:///./users.db"
+engine = create_engine(DATABASE_URL)
 
-
-cursor.execute("SELECT * FROM users")
-users = cursor.fetchall()
-print(users)
+SessionLocal = sessionmaker(bind=engine)
