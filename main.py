@@ -11,10 +11,12 @@ import models
 
 app = FastAPI()                 # python creates the application    
 
-class User(BaseModel):
+class User(BaseModel):      # pydantic models for API to check the validity of the data types
     id : int
     name : str
     age : int
+
+
 
 class UserUpdate(BaseModel):
     
@@ -23,20 +25,26 @@ class UserUpdate(BaseModel):
 
 
 
+class WorkspaceCreate(BaseModel):
+    name: str
+    owner_id: int 
 
-users = []                  #the users are in memory. if the server resetarts the users disappear.
+
+# users = []                  # the users are in memory. if the server resetarts the users disappear.
 
 
 
 
-@app.post("/users")         #because the user: is a pydantic model.
+@app.post("/users")         # because the user: is a pydantic model.
                             # FastAPI understands that the data should come from the request body.
+
 def create_user(user:User, db = Depends(get_db)):
     new_user = models.User(
         id = user.id,
         name = user.name,
         age = user.age
     )
+
     db.add(new_user)
     db.commit()
 
@@ -143,3 +151,39 @@ def partially_update_user(user_id: int, updated_user: UserUpdate, db = Depends(g
         return {"message": "User partially updated"}
     
     raise HTTPException(status_code = 404, detail = "user not found")
+
+
+@app.post("/workspaces")
+def create_workspace(workspace: WorkspaceCreate, db = Depends(get_db)):
+
+    new_workspace = models.Workspace(
+        name = workspace.name,
+        owner_id = workspace.owner_id
+    )
+
+
+    owner = db.query(models.User).filter(
+        models.User.id == workspace.owner_id
+    ).first()
+
+    if owner is None:
+        raise HTTPException(
+            status_code = 404,
+            detail = "owner not found"
+        )
+        
+    db.add(new_workspace)
+    db.commit()
+    return new_workspace
+
+
+
+@app.get("/workspaces/{workspace_id}")
+def get_workspace( workspace_id: int , db = Depends(get_db)):
+
+    res = db.query(models.Workspace).filter(models.Workspace.id == workspace_id).first()
+
+    if res is None:
+        raise HTTPException(status_code= 404,
+                      detail = "workspace doesnt exist")
+    return res
