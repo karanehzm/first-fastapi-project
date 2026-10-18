@@ -179,7 +179,7 @@ def create_workspace(workspace: WorkspaceCreate, db = Depends(get_db)):
 
 
 @app.get("/workspaces/{workspace_id}")
-def get_workspace( workspace_id: int , db = Depends(get_db)):
+def get_workspace(workspace_id: int , db = Depends(get_db)):
 
     res = db.query(models.Workspace).filter(models.Workspace.id == workspace_id).first()
 
@@ -187,3 +187,13 @@ def get_workspace( workspace_id: int , db = Depends(get_db)):
         raise HTTPException(status_code= 404,
                       detail = "workspace doesnt exist")
     return res
+
+
+@app.get("/workspaces") #this one gets all the workspaces
+def get_workspaces(db = Depends(get_db)):
+
+    res = db.query(models.Workspace).all()
+
+    if res is not None:
+        return res
+    
