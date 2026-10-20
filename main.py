@@ -30,6 +30,14 @@ class WorkspaceCreate(BaseModel):
     owner_id: int 
 
 
+class WorkspaceUpdate(BaseModel):
+    name : str | None = None
+    owner_id : int | None = None
+
+
+
+
+
 # users = []                  # the users are in memory. if the server resetarts the users disappear.
 
 
@@ -196,4 +204,27 @@ def get_workspaces(db = Depends(get_db)):
 
     if res is not None:
         return res
+    
+@app.patch("/workspaces/{workspace_id}")
+def update_workspaces( workspace_id : int, new_workspace : WorkspaceUpdate,  db = Depends(get_db)):
+    work_sp = db.query(models.Workspace).filter(models.Workspace.id == workspace_id).first()
+    
+    if work_sp is None:
+        raise HTTPException(status_code= 404, detail = "the workspace was not updated")
+    if new_workspace.name is not None:
+        work_sp.name = new_workspace.name
+
+    if new_workspace.owner_id is not None:
+        work_sp.owner_id = new_workspace.owner_id
+
+    db.commit()
+    db.refresh(work_sp)
+    
+    return work_sp 
+
+   
+
+
+    
+
     
