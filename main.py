@@ -210,21 +210,38 @@ def update_workspaces( workspace_id : int, new_workspace : WorkspaceUpdate,  db 
     work_sp = db.query(models.Workspace).filter(models.Workspace.id == workspace_id).first()
     
     if work_sp is None:
-        raise HTTPException(status_code= 404, detail = "the workspace was not updated")
+        raise HTTPException(status_code= 404, detail = "the workspace was not found")
     if new_workspace.name is not None:
         work_sp.name = new_workspace.name
 
-    if new_workspace.owner_id is not None:
+    if new_workspace.owner_id is not None :
+        owner = db.query(models.User).filter(models.User.id == new_workspace.owner_id).first()
+        if owner is None:
+            raise HTTPException(status_code= 404, detail = "user id is not valid")
         work_sp.owner_id = new_workspace.owner_id
 
     db.commit()
     db.refresh(work_sp)
-    
+
     return work_sp 
 
-   
 
+@app.delete("/Workspaces/{workspace_id}")
+def workspace_delete(workspace_id : int, db = Depends(get_db)):
+    work_sp = db.query(models.Workspace).filter(models.Workspace.id == workspace_id).first()
+    if work_sp is None:
+        raise HTTPException(status_code = 404, detail = "workspace is not valid")
+        
 
+    db.delete(work_sp)
+    db.commit()
+
+    return {"message" : "workspace deleted successfully "}
     
-
-    
+@app.get("/users/{user_id}/workspaces")
+def get_user_workspaces(user_id: int, db = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code= 404, detail = "the user is not available")
+    work_sps = db.query(models.Workspace).filter(models.Workspace.owner_id == user).all()
+    return work_sps 
