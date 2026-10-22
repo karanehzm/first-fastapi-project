@@ -36,6 +36,10 @@ class WorkspaceUpdate(BaseModel):
 
 
 
+class WorkspaceMemberCreate(BaseModel):
+    user_id : int  # the person we want to add as a member to the workspace
+
+
 
 
 # users = []                  # the users are in memory. if the server resetarts the users disappear.
@@ -240,8 +244,66 @@ def workspace_delete(workspace_id : int, db = Depends(get_db)):
     
 @app.get("/users/{user_id}/workspaces")
 def get_user_workspaces(user_id: int, db = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+
     if user is None:
         raise HTTPException(status_code= 404, detail = "the user is not available")
-    work_sps = db.query(models.Workspace).filter(models.Workspace.owner_id == user).all()
+    # work_sps = db.query(models.Workspace).filter(models.Workspace.owner_id == user_id).all()
+    work_sps = user.workspaces
+
     return work_sps 
+    
+
+
+
+@app.get("/workspaces/{workspace_id}/owner")
+def get_workspace_owner(workspace_id: int, db = Depends(get_db)):
+
+    work_sps = db.query(models.Workspace).filter(models.Workspace.id == workspace_id).first()
+    if work_sps is None:
+        raise HTTPException(status_code= 404, detail = "the workspace is not available")
+    
+    return work_sps.owner
+
+
+@app.post("/Workspaces/{workspace_id}/members") #workspace_id : which workspace we're adding someone to 
+def add_workspace_member( workspace_id : int,  member: WorkspaceMemberCreate, db = Depends(get_db)):
+
+    work_sps = db.query(models.Workspace).filter(models.Workspace.id == workspace_id).first()
+
+    if work_sps is None:
+        raise HTTPException(status_code = 404, detail = "the workspace doesnt exist")
+    
+    new_member = db.query(models.User).filter(models.User.id == member.user_id).first()
+
+    if new_member is None:
+        raise HTTPException(status_code= 404, detail = "the member user doesnt exist")
+    
+    member_in_work_sps = db.query(models.WorkspaceMember).filter(
+        models.WorkspaceMember.user_id == member.user_id,
+        models.WorkspaceMember.workspace_id == workspace_id).first()
+    
+    if member_in_work_sps is not None:
+        raise HTTPException(status_code= 409, detail= "User is already a member of this workspace")
+    
+    add_new_member = models.WorkspaceMember(user_id = member.user_id,
+                                            workspace_id = workspace_id)
+    
+    db.add(add_new_member)
+    db.commit()
+    db.refresh(add_new_member)
+
+    return add_new_member
+
+
+
+@app.get("/Workspaces/{workspace_id}/members")
+def get_workspace_members(workspace_id: int, db = Depends(get_db)):
+
+    work_sps = db.query(models.Workspace).filter(models.Workspace.id == workspace_id).first()
+    if work_sps is None:
+        raise HTTPException(status_code= 404, detail= "the workspace does not exist")
+    
+    members = work_sps.memberships
+    return members
